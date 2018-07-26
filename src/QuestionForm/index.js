@@ -1,5 +1,5 @@
 import React from 'react'
-import {reduxForm, Field, FieldArray} from 'redux-form'
+import {reduxForm, Field, FieldArray, getFormSyncErrors} from 'redux-form'
 import {connect} from 'react-redux'
 import {compose} from 'recompose'
 
@@ -39,11 +39,16 @@ const renderAnswer = (member, index, fields) => (
 const renderAnswers = ({fields}) => (
   <div>
     {fields.map(renderAnswer)}
-    <button onClick={() => fields.push()}>Add answer</button>
+    <button onClick={() => fields.push({})}>Add answer</button>
   </div>
 )
-const QuestionForm = () => (
-  <div>
+const QuestionForm = ({errors, handleSubmit}) => (
+  <form onSubmit={handleSubmit(values => console.log(values))}>
+    <div style={{color: 'red'}}>
+      <ul>
+        {Object.values(errors).map(error => <li>{error}</li>)}
+      </ul>
+    </div>
     <h1>Create question</h1>
     <label>
       Question:&nbsp;
@@ -51,11 +56,14 @@ const QuestionForm = () => (
     </label>
     <h2>Answers</h2>
     <FieldArray name='answers' component={renderAnswers} />
-  </div>
+    <button type='submit'>Submit</button>
+  </form>
 )
 
 export default compose(
-  connect(),
+  connect(state => ({
+    errors: getFormSyncErrors('questionForm')(state)
+  })),
   reduxForm({
     form: 'questionForm',
     validate (values) {
@@ -64,14 +72,12 @@ export default compose(
         errors.title = 'Invalid title'
       }
 
-      console.log(values)
-
       if (values.answers && values.answers.length > 1) {
         if (!values.answers.find(a => a.isCorrect)) {
           errors.answers = 'At least one answer must be marked as correct'
         }
 
-        if (values.answers.find(a => !!a.text) < values.answers.length) {
+        if (values.answers.filter(a => !!a.text).length < values.answers.length) {
           errors.answers = 'Answer text missing'
         }
 
